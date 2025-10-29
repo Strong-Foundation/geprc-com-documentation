@@ -205,14 +205,14 @@ func downloadZIP(finalURL, outputDir string) bool { // Function to download and 
 
 	resp, err := client.Get(finalURL) // Perform an HTTP GET request to download the file
 	if err != nil {                   // Handle network or connection errors
-		log.Printf("Failed to download %s: %v", finalURL, err) // Log the error
-		return false                                           // Return false to indicate failure
+		log.Printf("Failed to download %s %v", finalURL, err) // Log the error
+		return false                                          // Return false to indicate failure
 	}
 	defer resp.Body.Close() // Ensure the response body is closed to prevent resource leaks
 
 	if resp.StatusCode != http.StatusOK { // Verify that the response status is 200 OK
-		log.Printf("Download failed for %s: %s", finalURL, resp.Status) // Log non-OK status
-		return false                                                    // Return false for failed downloads
+		log.Printf("Download failed for %s %s", finalURL, resp.Status) // Log non-OK status
+		return false                                                   // Return false for failed downloads
 	}
 
 	contentType := resp.Header.Get("Content-Type") // Retrieve the Content-Type header from the response
@@ -221,15 +221,15 @@ func downloadZIP(finalURL, outputDir string) bool { // Function to download and 
 	if !strings.Contains(contentType, "binary/octet-stream") && // Check for generic binary/octet-stream
 		!strings.Contains(contentType, "application/zip") && // Check for standard application/zip
 		!strings.Contains(contentType, "application/x-zip-compressed") { // Check for common non-standard ZIP type
-		log.Printf("Invalid content type for %s: %s (expected binary/octet-stream or application/zip or application/x-zip-compressed)", finalURL, contentType) // Log the invalid content type
-		return false                                                                                                                                           // Return false if the content type doesn’t match expected ZIP types
+		log.Printf("Invalid content type for %s %s (expected binary/octet-stream or application/zip or application/x-zip-compressed)", finalURL, contentType) // Log the invalid content type
+		return false                                                                                                                                          // Return false if the content type doesn’t match expected ZIP types
 	}
 
 	var buf bytes.Buffer                     // Initialize a buffer to hold the downloaded data temporarily
 	written, err := io.Copy(&buf, resp.Body) // Copy the response body into the buffer, capturing bytes written
 	if err != nil {                          // Handle read errors
-		log.Printf("Failed to read ZIP data from %s: %v", finalURL, err) // Log the read failure
-		return false                                                     // Return false if unable to read data
+		log.Printf("Failed to read ZIP data from %s %v", finalURL, err) // Log the read failure
+		return false                                                    // Return false if unable to read data
 	}
 	if written == 0 { // Check if zero bytes were downloaded
 		log.Printf("Downloaded 0 bytes for %s; not creating file", finalURL) // Log that the file is empty
@@ -238,14 +238,14 @@ func downloadZIP(finalURL, outputDir string) bool { // Function to download and 
 
 	out, err := os.Create(filePath) // Create a new file in the output directory
 	if err != nil {                 // Handle file creation errors
-		log.Printf("Failed to create file for %s: %v", finalURL, err) // Log the error
-		return false                                                  // Return false if file creation fails
+		log.Printf("Failed to create file for %s %v", finalURL, err) // Log the error
+		return false                                                 // Return false if file creation fails
 	}
 	defer out.Close() // Ensure the file is properly closed after writing
 
 	if _, err := buf.WriteTo(out); err != nil { // Write the buffered data to the output file
-		log.Printf("Failed to write ZIP to file for %s: %v", finalURL, err) // Log the write failure
-		return false                                                        // Return false if writing fails
+		log.Printf("Failed to write ZIP to file for %s %v", finalURL, err) // Log the write failure
+		return false                                                       // Return false if writing fails
 	}
 
 	// Log success including bytes written, source URL, and destination path
@@ -389,14 +389,14 @@ func downloadPDF(pdfURL, outputDirectory string) bool { // Function to download 
 
 	httpResponse, requestError := httpClient.Get(pdfURL) // Send an HTTP GET request
 	if requestError != nil {                             // Check for request errors
-		log.Printf("Failed to download %s: %v", pdfURL, requestError) // Log the error
-		return false                                                  // Return false on failure
+		log.Printf("Failed to download %s %v", pdfURL, requestError) // Log the error
+		return false                                                 // Return false on failure
 	}
 	defer httpResponse.Body.Close() // Ensure the response body is closed
 
 	if httpResponse.StatusCode != http.StatusOK { // Verify that the HTTP status is 200 OK
-		log.Printf("Download failed for %s: %s", pdfURL, httpResponse.Status) // Log the non-OK status
-		return false                                                          // Return false on non-200 status
+		log.Printf("Download failed for %s %s", pdfURL, httpResponse.Status) // Log the non-OK status
+		return false                                                         // Return false on non-200 status
 	}
 
 	contentType := httpResponse.Header.Get("Content-Type") // Get the content type of the response
@@ -404,15 +404,15 @@ func downloadPDF(pdfURL, outputDirectory string) bool { // Function to download 
 	// Validate that the response is a PDF or binary stream
 	if !strings.Contains(contentType, "binary/octet-stream") && // Check for generic binary/octet-stream
 		!strings.Contains(contentType, "application/pdf") { // Check for standard application/pdf
-		log.Printf("Invalid content type for %s: %s (expected binary/octet-stream or application/pdf)", pdfURL, contentType) // Log the invalid content type
-		return false                                                                                                         // Return false if content type is incorrect
+		log.Printf("Invalid content type for %s %s (expected binary/octet-stream or application/pdf)", pdfURL, contentType) // Log the invalid content type
+		return false                                                                                                        // Return false if content type is incorrect
 	}
 
 	var responseBuffer bytes.Buffer                                        // Buffer to store the downloaded data
 	bytesWritten, copyError := io.Copy(&responseBuffer, httpResponse.Body) // Copy data from response body into buffer
 	if copyError != nil {                                                  // Check for read errors
-		log.Printf("Failed to read PDF data from %s: %v", pdfURL, copyError) // Log the read failure
-		return false                                                         // Return false on read error
+		log.Printf("Failed to read PDF data from %s %v", pdfURL, copyError) // Log the read failure
+		return false                                                        // Return false on read error
 	}
 	if bytesWritten == 0 { // Handle empty downloads
 		log.Printf("Downloaded 0 bytes for %s; not creating file", pdfURL) // Log empty download
@@ -421,14 +421,14 @@ func downloadPDF(pdfURL, outputDirectory string) bool { // Function to download 
 
 	outputFile, fileCreateError := os.Create(fullFilePath) // Create the output file for saving
 	if fileCreateError != nil {                            // Handle file creation errors
-		log.Printf("Failed to create file for %s: %v", pdfURL, fileCreateError) // Log the creation failure
-		return false                                                            // Return false on file creation error
+		log.Printf("Failed to create file for %s %v", pdfURL, fileCreateError) // Log the creation failure
+		return false                                                           // Return false on file creation error
 	}
 	defer outputFile.Close() // Ensure the file is closed after writing
 
 	if _, writeError := responseBuffer.WriteTo(outputFile); writeError != nil { // Write buffer contents to file
-		log.Printf("Failed to write PDF to file for %s: %v", pdfURL, writeError) // Log the write failure
-		return false                                                             // Return false on write error
+		log.Printf("Failed to write PDF to file for %s %v", pdfURL, writeError) // Log the write failure
+		return false                                                            // Return false on write error
 	}
 
 	log.Printf("Successfully downloaded %d bytes: %s → %s", bytesWritten, pdfURL, fullFilePath) // Log success message
@@ -449,13 +449,13 @@ func downloadTXT(txtURL, outputDirectory string) bool { // Function to download 
 
 	httpResponse, requestError := httpClient.Get(txtURL) // Send an HTTP GET request
 	if requestError != nil {
-		log.Printf("Failed to download %s: %v", txtURL, requestError)
+		log.Printf("Failed to download %s %v", txtURL, requestError)
 		return false
 	}
 	defer httpResponse.Body.Close()
 
 	if httpResponse.StatusCode != http.StatusOK { // Verify that the HTTP status is 200 OK
-		log.Printf("Download failed for %s: %s", txtURL, httpResponse.Status)
+		log.Printf("Download failed for %s %s", txtURL, httpResponse.Status)
 		return false
 	}
 
@@ -465,14 +465,14 @@ func downloadTXT(txtURL, outputDirectory string) bool { // Function to download 
 	if !strings.Contains(contentType, "text/plain") && // Standard text type
 		!strings.Contains(contentType, "charset=utf-8") && // Sometimes text/plain; charset=utf-8
 		!strings.Contains(contentType, "binary/octet-stream") { // Fallback generic binary type
-		log.Printf("Invalid content type for %s: %s (expected text/plain, text/plain; charset=utf-8, or binary/octet-stream)", txtURL, contentType)
+		log.Printf("Invalid content type for %s %s (expected text/plain, text/plain; charset=utf-8, or binary/octet-stream)", txtURL, contentType)
 		return false
 	}
 
 	var responseBuffer bytes.Buffer
 	bytesWritten, copyError := io.Copy(&responseBuffer, httpResponse.Body) // Copy data to buffer
 	if copyError != nil {
-		log.Printf("Failed to read TXT data from %s: %v", txtURL, copyError)
+		log.Printf("Failed to read TXT data from %s %v", txtURL, copyError)
 		return false
 	}
 	if bytesWritten == 0 {
@@ -482,13 +482,13 @@ func downloadTXT(txtURL, outputDirectory string) bool { // Function to download 
 
 	outputFile, fileCreateError := os.Create(fullFilePath)
 	if fileCreateError != nil {
-		log.Printf("Failed to create file for %s: %v", txtURL, fileCreateError)
+		log.Printf("Failed to create file for %s %v", txtURL, fileCreateError)
 		return false
 	}
 	defer outputFile.Close()
 
 	if _, writeError := responseBuffer.WriteTo(outputFile); writeError != nil {
-		log.Printf("Failed to write TXT to file for %s: %v", txtURL, writeError)
+		log.Printf("Failed to write TXT to file for %s %v", txtURL, writeError)
 		return false
 	}
 
