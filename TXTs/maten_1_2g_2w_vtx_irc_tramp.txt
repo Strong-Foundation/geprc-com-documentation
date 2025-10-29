@@ -1,0 +1,15 @@
+# MATEN 1.2G 2W VTX
+
+vtxtable bands 1
+
+vtxtable channels 8
+
+vtxtable band 1 BAND_A   A CUSTOM 1080 1120 1160 1200 1240 1280 1320 1360
+
+vtxtable powerlevels 4
+
+vtxtable powervalues 25 400 800 2000
+
+vtxtable powerlabels 25 400 800 MAX
+
+save

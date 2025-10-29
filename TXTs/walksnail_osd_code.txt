@@ -1,0 +1,3 @@
+set osd_displayport_device=MSP 
+set displayport_msp_serial=0
+save

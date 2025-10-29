@@ -1,0 +1,21 @@
+
+If your F722-AIO FC soldered light strip's BEC on Uart 5 , Please use those code
+
+
+resource SERIAL_TX 5 none
+resource PINIO 2 C12
+set pinio_config = 129,1,1,1
+set pinio_box = 39,40,41,42
+
+save
+
+
+If your F722-AIO FC soldered light strip's BEC on LED pad , Please use those code
+
+resource LED_STRIP 1 NONE
+resource PINIO 2 A01
+resource SERIAL_TX 5 C12
+set pinio_config = 129,1,1,1
+set pinio_box = 39,40,41,42
+
+SAVE

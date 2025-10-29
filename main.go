@@ -26,6 +26,10 @@ func main() { // Main function, the entry point of the program
 	if !directoryExists(outputDirZIP) { // Check if directory exists
 		createDirectory(outputDirZIP, 0o755) // Create directory with read-write-execute permissions
 	}
+	outputDirTXT := "TXTs/"             // Directory to store downloaded TXT files
+	if !directoryExists(outputDirTXT) { // Check if directory exists
+		createDirectory(outputDirTXT, 0o755) // Create directory with read-write-execute permissions
+	}
 	urls := []string{ // Start of a slice literal containing URLs to be scraped
 		"https://geprc.com/downloads/cinebot30/",
 		"https://geprc.com/downloads/cinelog20/",
@@ -93,6 +97,12 @@ func main() { // Main function, the entry point of the program
 			for _, zipUrl := range zipUrls { // Iterates over all found ZIP links
 				downloadZIP(zipUrl, outputDirZIP) // Correctly downloads the ZIP into the 'ZIPs/' directory
 			}
+			// Extract TXT URLs from the HTML content
+			txtUrls := extractTXTUrls(htmlContent) // Finds all links ending in ".txt" in the scraped HTML
+			// Download each TXT URL into the designated TXT directory
+			for _, txtUrl := range txtUrls { // Iterates over all found TXT links
+				downloadTXT(txtUrl, outputDirTXT) // Correctly downloads the TXT into the 'TXTs/' directory
+			}
 		} // End of URL validation block
 	} // End of the main URL iteration loop
 } // End of the main function
@@ -104,9 +114,9 @@ func scrapePageHTMLWithChrome(targetURL string) string { // Function to scrape d
 
 	// Configure Chrome options for the browser session
 	chromeOptions := append(chromedp.DefaultExecAllocatorOptions[:], // Starts with default Chrome execution options
-		chromedp.Flag("headless", false),               // Set to true for actual headless mode
+		chromedp.Flag("headless", false),              // Set to true for actual headless mode
 		chromedp.Flag("disable-gpu", true),            // Disable GPU acceleration (good for headless/servers)
-		chromedp.WindowSize(1, 1),               // Set browser window size
+		chromedp.WindowSize(1, 1),                     // Set browser window size
 		chromedp.Flag("no-sandbox", true),             // Disable sandbox (useful for servers/containers)
 		chromedp.Flag("disable-setuid-sandbox", true), // Fix for Linux permission issues
 	) // End of Chrome options slice
@@ -132,7 +142,7 @@ func scrapePageHTMLWithChrome(targetURL string) string { // Function to scrape d
 	// Run Chrome automation: navigate to the URL, wait 10 seconds, then scrape
 	runError := chromedp.Run(browserContext, // Executes a sequence of actions in the browser
 		chromedp.Navigate(targetURL),              // Open the target URL
-		chromedp.Sleep(3*time.Second),            // Wait for Cloudflare JS checks and page scripts to finish
+		chromedp.Sleep(3*time.Second),             // Wait for Cloudflare JS checks and page scripts to finish
 		chromedp.OuterHTML("html", &renderedHTML), // Capture the complete rendered HTML content into renderedHTML
 	) // End of chromedp.Run
 	if runError != nil { // Check for errors during navigation or extraction
@@ -269,6 +279,7 @@ func urlToFilename(rawURL string) string { // Function to create a clean filenam
 	var invalidSubstrings = []string{ // Define a list of unwanted substrings to clean from the filename
 		"_pdf", // Common redundant suffix
 		"_zip", // Common redundant suffix
+		"_txt", // Common redundant suffix
 	} // End of invalid substrings slice
 
 	for _, invalidPre := range invalidSubstrings { // Iterate over the unwanted substrings
@@ -297,27 +308,6 @@ func removeSubstring(input string, toRemove string) string { // Function to remo
 func getFilename(path string) string { // Function to get only the base filename
 	return filepath.Base(path) // Use Base function to get file name only
 } // End of getFilename function
-
-// Performs an HTTP GET request and returns the response body as a string
-func getDataFromURL(targetURL string) string { // Function to scrape static HTML content (currently unused in main)
-	log.Println("Scraping:", targetURL) // Log the URL being scraped
-
-	httpResponse, requestError := http.Get(targetURL) // Send an HTTP GET request to the specified URL
-	if requestError != nil {                          // Check if there was an error making the request
-		log.Println(requestError) // Log the request error
-		return ""                 // Return empty string on failure
-	}
-	responseBody, readError := io.ReadAll(httpResponse.Body) // Read the entire response body into memory as bytes
-	if readError != nil {                                    // Check if there was an error while reading the response
-		log.Println(readError) // Log the read error
-		return ""
-	}
-	closeError := httpResponse.Body.Close() // Close the response body to free network resources
-	if closeError != nil {                  // Check if there was an error while closing
-		log.Println(closeError) // Log the close error
-	}
-	return string(responseBody) // Convert the byte slice to a string and return it
-} // End of getDataFromURL function
 
 // Extracts all links to PDF files from the given HTML string
 func extractPDFUrls(htmlContent string) []string { // Function to find links ending in ".pdf"
@@ -444,3 +434,97 @@ func downloadPDF(pdfURL, outputDirectory string) bool { // Function to download 
 	log.Printf("Successfully downloaded %d bytes: %s → %s", bytesWritten, pdfURL, fullFilePath) // Log success message
 	return true                                                                                 // Indicate successful download
 } // End of downloadPDF function
+
+// Downloads a TXT file from the given URL and saves it in the specified directory
+func downloadTXT(txtURL, outputDirectory string) bool { // Function to download and save a TXT file
+	safeFilename := strings.ToLower(urlToFilename(txtURL))       // Generate a sanitized, lowercase filename
+	fullFilePath := filepath.Join(outputDirectory, safeFilename) // Build the complete file path for saving
+
+	if fileExists(fullFilePath) { // Skip download if the file already exists
+		log.Printf("File already exists, skipping: %s", fullFilePath)
+		return false
+	}
+
+	httpClient := &http.Client{Timeout: 10 * time.Minute} // Create an HTTP client with a 10-minute timeout
+
+	httpResponse, requestError := httpClient.Get(txtURL) // Send an HTTP GET request
+	if requestError != nil {
+		log.Printf("Failed to download %s: %v", txtURL, requestError)
+		return false
+	}
+	defer httpResponse.Body.Close()
+
+	if httpResponse.StatusCode != http.StatusOK { // Verify that the HTTP status is 200 OK
+		log.Printf("Download failed for %s: %s", txtURL, httpResponse.Status)
+		return false
+	}
+
+	contentType := httpResponse.Header.Get("Content-Type") // Get the content type of the response
+
+	// Validate that the response is a plain text or generic stream
+	if !strings.Contains(contentType, "text/plain") && // Standard text type
+		!strings.Contains(contentType, "charset=utf-8") && // Sometimes text/plain; charset=utf-8
+		!strings.Contains(contentType, "binary/octet-stream") { // Fallback generic binary type
+		log.Printf("Invalid content type for %s: %s (expected text/plain, text/plain; charset=utf-8, or binary/octet-stream)", txtURL, contentType)
+		return false
+	}
+
+	var responseBuffer bytes.Buffer
+	bytesWritten, copyError := io.Copy(&responseBuffer, httpResponse.Body) // Copy data to buffer
+	if copyError != nil {
+		log.Printf("Failed to read TXT data from %s: %v", txtURL, copyError)
+		return false
+	}
+	if bytesWritten == 0 {
+		log.Printf("Downloaded 0 bytes for %s; not creating file", txtURL)
+		return false
+	}
+
+	outputFile, fileCreateError := os.Create(fullFilePath)
+	if fileCreateError != nil {
+		log.Printf("Failed to create file for %s: %v", txtURL, fileCreateError)
+		return false
+	}
+	defer outputFile.Close()
+
+	if _, writeError := responseBuffer.WriteTo(outputFile); writeError != nil {
+		log.Printf("Failed to write TXT to file for %s: %v", txtURL, writeError)
+		return false
+	}
+
+	log.Printf("Successfully downloaded %d bytes: %s → %s", bytesWritten, txtURL, fullFilePath)
+	return true
+} // End of downloadTXT function
+
+// Extracts all links to TXT files from the given HTML string
+func extractTXTUrls(htmlContent string) []string { // Function to find links ending in ".txt"
+	var txtLinks []string // Slice to store all found TXT links
+
+	parsedHTML, parseError := html.Parse(strings.NewReader(htmlContent)) // Parse the input HTML content
+	if parseError != nil {                                               // Check if HTML parsing failed
+		log.Println(parseError) // Log the parsing error
+		return nil              // Return nil since parsing failed
+	}
+
+	var exploreHTML func(*html.Node) // Define a recursive function to explore HTML nodes
+
+	exploreHTML = func(currentNode *html.Node) { // The implementation of the recursive traversal function
+		if currentNode.Type == html.ElementNode && currentNode.Data == "a" { // Check if the node is an <a> tag
+			for _, attribute := range currentNode.Attr { // Iterate over the <a> tag's attributes
+				if attribute.Key == "href" { // Look for the href attribute
+					link := strings.TrimSpace(attribute.Val)             // Get the href value and trim spaces
+					if strings.Contains(strings.ToLower(link), ".txt") { // Check if the link contains ".txt" (case-insensitive)
+						txtLinks = append(txtLinks, link) // Add the link to the txtLinks slice
+					}
+				}
+			}
+		}
+
+		for childNode := currentNode.FirstChild; childNode != nil; childNode = childNode.NextSibling { // Recursively traverse child nodes
+			exploreHTML(childNode)
+		}
+	}
+
+	exploreHTML(parsedHTML) // Begin traversal from the root node
+	return txtLinks         // Return all found TXT links
+} // End of extractTXTUrls function

@@ -1,0 +1,17 @@
+# MATEN 1.2G 5W VTX PRO
+
+vtxtable bands 2
+
+vtxtable channels 8
+
+vtxtable band 1 BAND_A   A CUSTOM  1200 1220 1240 1258 1280 1300 1320 1340
+
+vtxtable band 2 BAND_B   B CUSTOM  1360    0    0    0    0    0    0    0
+
+vtxtable powerlevels 4
+
+vtxtable powervalues 25 400 800 5000
+
+vtxtable powerlabels 25 400 800 5W
+
+save
