@@ -29,7 +29,7 @@ jobs: # 🧩 Define all jobs
           token: ${{ secrets.GITHUB_TOKEN }} # 🔑 Use built-in token for authentication
 
       - name: Setup Go Environment # ⚙️ Step 2: Install Go
-        uses: actions/setup-go@v5 # 📦 Official Go setup action
+        uses: actions/setup-go@v6 # 📦 Official Go setup action
         with:
           go-version: "1.23" # 💡 Specify Go version (latest stable)
 
